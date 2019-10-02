@@ -1,0 +1,39 @@
+version: '3.7'
+
+services:
+  kafka:
+    image: landoop/fast-data-dev:2.3.0
+    ports:
+      - 9092:9092           # broker
+      - 8081:8081           # schema registry
+      - 8082:8082           # rest proxy
+      - 8083:8083           # Kafka connect distributed
+      - 2181:2181           # zookeeper
+      - 3030:3030           # web server
+      - 9581-9584:9581-9584 #JMX
+    environment:
+      - ADV_HOST=127.0.0.1
+      - SAMPLEDATA=0
+    volumes:
+      - ./data/kafka:/hostdata
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.3.2
+    environment:
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - network.host=0.0.0.0
+      - http.port=9200
+      - discovery.type=single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.3.2
+    ports:
+      - "5601:5601"

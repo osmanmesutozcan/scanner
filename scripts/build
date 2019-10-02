@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+mkdir bin 2>/dev/null
+
+for app in kafka_processor_metadata_http kafka_consumer_stdout kafka_producer_stdin es_producer_stdin; do
+  pushd $app > /dev/null
+  echo building $app
+  go build && mv $app ../bin
+  popd > /dev/null
+done

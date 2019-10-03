@@ -1,5 +1,9 @@
 version: '3.7'
 
+volumes:
+  esdata:
+  kafkadata:
+
 services:
   kafka:
     image: landoop/fast-data-dev:2.3.0
@@ -16,6 +20,7 @@ services:
       - SAMPLEDATA=0
     volumes:
       - ./data/kafka:/hostdata
+      - kafkadata:/data
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.3.2
@@ -32,6 +37,8 @@ services:
         hard: -1
     ports:
       - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
 
   kibana:
     image: docker.elastic.co/kibana/kibana:7.3.2

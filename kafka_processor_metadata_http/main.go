@@ -51,7 +51,7 @@ func main() {
 
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost",
-		"group.id":          fmt.Sprintf("metadata.%s", protocol),
+		"group.id":          fmt.Sprintf("metadata.%d.%s", port, protocol),
 		"auto.offset.reset": "earliest",
 	})
 	if err != nil {

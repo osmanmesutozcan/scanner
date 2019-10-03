@@ -3,34 +3,67 @@ package main
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
 )
 
+type JsonOutput struct {
+	Addr     string
+	Port     int
+	Protocol string
+	Data     string
+	Err      error
+}
+
+func probeResultToJsonString(result ProbeResult) string {
+	js, err := json.Marshal(JsonOutput{
+		result.Addr,
+		result.Port,
+		result.Protocol,
+		string(result.Data),
+		result.Err,
+	})
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[error] cannot json %s: %s\n", result.Addr, result.Err)
+		return ""
+	}
+
+	return string(js) + "\n"
+}
+
 // Read resultStructs from resultChan, print output, and maintain
 // status counters.  Writes to doneChan when complete.
-func output(resultChan chan resultStruct, doneChan chan int) {
+func Output(resultChan chan ProbeResult, doneChan chan int) {
 	ok, timeouts, errors := 0, 0, 0
+
 	for result := range resultChan {
-		if result.err == nil {
-			switch *formatFlag {
-			case "hex":
-				fmt.Printf("%s: %s\n", result.addr,
-					hex.EncodeToString(result.data))
-			case "base64":
-				fmt.Printf("%s: %s\n", result.addr,
-					base64.StdEncoding.EncodeToString(result.data))
-			default:
-				fmt.Printf("%s: %s\n", result.addr,
-					string(result.data))
-			}
+		var output string
+
+		switch *formatFlag {
+		case "hex":
+			output = fmt.Sprintf("%s: %s\n", result.Addr,
+				hex.EncodeToString(result.Data))
+		case "base64":
+			output = fmt.Sprintf("%s: %s\n", result.Addr,
+				base64.StdEncoding.EncodeToString(result.Data))
+		case "ascii":
+			output = fmt.Sprintf("%s: %s\n", result.Addr,
+				string(result.Data))
+		default:
+			output = fmt.Sprintf(probeResultToJsonString(result))
+		}
+
+		if result.Err == nil {
+			fmt.Printf(output)
 			ok++
-		} else if nerr, ok := result.err.(net.Error); ok && nerr.Timeout() {
-			fmt.Fprintf(os.Stderr, "%s: Timeout\n", result.addr)
+		} else if nerr, ok := result.Err.(net.Error); ok && nerr.Timeout() {
+			fmt.Fprintf(os.Stderr, output)
 			timeouts++
 		} else {
-			fmt.Fprintf(os.Stderr, "%s: Error %s\n", result.addr, result.err)
+			fmt.Fprintf(os.Stderr, output)
 			errors++
 		}
 	}

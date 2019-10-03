@@ -14,12 +14,13 @@ import (
 
 var (
 	nConnectFlag = flag.Int("concurrent", 10, "Number of concurrent connections")
-	formatFlag   = flag.String("format", "ascii", "Output format for responses ('ascii', 'hex', or 'base64')")
+	formatFlag   = flag.String("format", "json", "Output format for responses ('ascii', 'hex', json, or 'base64')")
 	timeoutFlag  = flag.Int("timeout", 4, "Seconds to wait for each host to respond")
 	dataFileFlag = flag.String("data", "", "Directory containing protocol messages to send to responsive hosts ('%s' will be replaced with host IP)")
 )
 
 const FileDescLimit = 100000
+
 var MessageData = make(map[string][]byte)
 var PortMappings = map[int]string{
 	21:   "ftp",
@@ -62,20 +63,21 @@ func init() {
 	}
 }
 
-type resultStruct struct {
-	addr string // address of remote host
-	port int    // connected port of remote host
-	data []byte // data returned from the host, if successful
-	err  error  // error, if any
+type ProbeResult struct {
+	Addr     string // address of remote host
+	Port     int    // connected port of remote host
+	Protocol string // probed protocol
+	Data     []byte // data returned from the host, if successful
+	Err      error  // error, if any
 }
 
 func main() {
 	addrChan := make(chan scannertypes.JsonRawIpPort, *nConnectFlag) // pass addresses to grabbers
-	resultChan := make(chan resultStruct, *nConnectFlag)             // grabbers send results to output
+	resultChan := make(chan ProbeResult, *nConnectFlag)              // grabbers send results to output
 	doneChan := make(chan int, *nConnectFlag)                        // let grabbers signal completion
 
 	// Start grabbers and output thread
-	go output(resultChan, doneChan)
+	go Output(resultChan, doneChan)
 	for i := 0; i < *nConnectFlag; i++ {
 		go GrabBanners(addrChan, resultChan, doneChan)
 	}

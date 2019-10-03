@@ -13,15 +13,20 @@ func getBannerMessageData(port int) []byte {
 	return MessageData[PortMappings[port]]
 }
 
+func getBannerProtocolProbedProtocol(port int) string {
+	return PortMappings[port]
+}
+
 // Read addresses from addrChan and grab banners from these hosts.
 // Sends resultStructs to resultChan.  Writes to doneChan when complete.
-func GrabBanners(addrChan chan scannertypes.JsonRawIpPort, resultChan chan resultStruct, doneChan chan int) {
+func GrabBanners(addrChan chan scannertypes.JsonRawIpPort, resultChan chan ProbeResult, doneChan chan int) {
 	for addr := range addrChan {
+		protocol := getBannerProtocolProbedProtocol(addr.Port)
 		deadline := time.Now().Add(time.Duration(*timeoutFlag) * time.Second)
 		dialer := net.Dialer{Deadline: deadline}
 		conn, err := dialer.Dial("tcp", net.JoinHostPort(addr.Ip, strconv.Itoa(addr.Port)))
 		if err != nil {
-			resultChan <- resultStruct{addr.Ip, addr.Port, nil, err}
+			resultChan <- ProbeResult{addr.Ip, addr.Port, protocol, nil, err}
 			continue
 		}
 
@@ -38,7 +43,7 @@ func GrabBanners(addrChan chan scannertypes.JsonRawIpPort, resultChan chan resul
 			}
 
 			n, err := conn.Read(buf[offset:])
-			if err != nil && err != io.EOF && offset == 0 {
+			if err != nil && (err != io.EOF || offset == 0) {
 				connectionError = err
 				break
 			}
@@ -48,12 +53,12 @@ func GrabBanners(addrChan chan scannertypes.JsonRawIpPort, resultChan chan resul
 
 		if connectionError != nil {
 			conn.Close()
-			resultChan <- resultStruct{addr.Ip, addr.Port, nil, connectionError}
+			resultChan <- ProbeResult{addr.Ip, addr.Port, protocol, nil, connectionError}
 			continue
 		}
 
 		conn.Close()
-		resultChan <- resultStruct{addr.Ip, addr.Port, buf[0:offset], nil}
+		resultChan <- ProbeResult{addr.Ip, addr.Port, protocol, buf[0:offset], nil}
 	}
 	doneChan <- 1
 }

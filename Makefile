@@ -1,11 +1,11 @@
 PORT?=8080
 
+build_all:
+	./scripts/build
+
 nuke_data:
 	docker-compose -f ./docker-compose.dev.yml down -v
 	docker-compose -f ./docker-compose.dev.yml up -d
-
-build_all:
-	./scripts/build
 
 zmap_produce:
 	sudo zmap -B 1M -p $(PORT) | ./bin/kafka_producer_stdin "raw_ips_on_port_$(PORT)"

@@ -24,7 +24,7 @@ const FileDescLimit = 100000
 var MessageData = make(map[string][]byte)
 var PortMappings = map[int]string{
 	21:   "ftp",
-	22:   "null",
+	22:   "ssh",
 	80:   "http",
 	8080: "http",
 }
